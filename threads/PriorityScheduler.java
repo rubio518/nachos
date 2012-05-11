@@ -144,7 +144,7 @@ public class PriorityScheduler extends Scheduler {
 	}
 
 	public KThread nextThread() {
-
+	
 	  Lib.assertTrue(Machine.interrupt().disabled());
 	    
 	    ThreadState picked = pickNextThread();
@@ -194,6 +194,9 @@ public class PriorityScheduler extends Scheduler {
 		maxp = tempp;
 	      }
 	    }
+	    if((maxts != null) && (maxts.donadores.size()>0)){
+		maxts.resetPriority();
+	    }
 		
 // implement me -----done-----
 	    return maxts;
@@ -209,7 +212,7 @@ public class PriorityScheduler extends Scheduler {
 	 * threads to the owning thread.
 	 */
 	public boolean transferPriority;
-	/** el que tiene los recursos en este momento (el que tiene el lock)*/
+	/** el que tiene los recursos en este momento*/
 	public ThreadState holder = null;
 	/**la lista de treads que esperan */
 	public LinkedList<ThreadState> waits = new LinkedList<ThreadState>();
@@ -259,7 +262,7 @@ public class PriorityScheduler extends Scheduler {
 	 *
 	 * @param	priority	the new priority.
 	 */
-	public void setPriority(int priority) {
+	public void setEPriority(int prio) {
 	   // if (this.priority == priority){
 		//	epriority = priority;
 		//	return;
@@ -270,16 +273,37 @@ public class PriorityScheduler extends Scheduler {
 
 	    /** sumamos las donaciones locas a la efective priority la prioridad normal se queda igual */
 	   
-	   epriority = priority;
+	   this.epriority = prio;
+	    
+	    // implement me --- done -----
+	}
+	public void setPriority(int prio) {
+	   // if (this.priority == priority){
+		//	epriority = priority;
+		//	return;
+		//}
+		//if(this.priority == 0){
+		//	priority--;
+		//}
+
+	    /** sumamos las donaciones locas a la efective priority la prioridad normal se queda igual */
+	   
+	   this.priority = prio;
+	   this.epriority = prio;
 	    
 	    // implement me --- done -----
 	}
 	//limpia las donaciones 
-	public void cleanPriority(){
-	    donaciones = 0;
-	    epriority = priority;
+	public void resetPriority(){
+		ThreadState temp;
+		for(int i = 0;i < donadores.size();i++){
+			temp = this.donadores.remove();
+			temp.setEPriority(temp.priority);
+		}
+		
 	}
-
+	
+	
 	/**
 	 * Called when <tt>waitForAccess(thread)</tt> (where <tt>thread</tt> is
 	 * the associated thread) is invoked on the specified priority queue.
@@ -294,14 +318,18 @@ public class PriorityScheduler extends Scheduler {
 	 */
 	public void waitForAccess(PriorityQueue waitQueue){
 		waitQueue.waits.add(this);
-		
+		queue = (waitQueue);
 		if((waitQueue.transferPriority)){
 			if(this.getPriority()<7){
-				waitQueue.holder.setPriority(this.getPriority()+1);
+				waitQueue.holder.setEPriority(this.getPriority()+1);
+				waitQueue.holder.donadores.add(this);
+				
 			}else{
-				waitQueue.holder.setPriority(7);
+				//this.setPriority(6);
+				waitQueue.holder.setEPriority(7);
+				waitQueue.holder.donadores.add(this);
 			}
-			waitQueue.transferPriority= false;
+			
 		}
 	 
 	}
@@ -325,10 +353,15 @@ public class PriorityScheduler extends Scheduler {
 	protected KThread thread;
 	/** The priority of the associated thread. */
 	protected int priority = PriorityScheduler.priorityDefault;
+	
+	/** los que me donaron a mi*/
+	protected LinkedList<ThreadState> donadores = new LinkedList<ThreadState>();
 
 	/** donaciones locas*/
 	protected int donaciones = 0;
 	
+	protected ThreadQueue queue;
+
 	/** prioridad efectiva*/
 	protected int epriority = PriorityScheduler.priorityDefault;
 	

@@ -32,7 +32,7 @@ public class Alarm {
 	Machine.interrupt().disable();
 	
 	//int largo = waits.size(); 
-		
+		//System.out.println("en el timer interrupt"+Machine.timer().getTime());
 		waitQ.remove();	
 
 	Machine.interrupt().enable();
@@ -57,7 +57,7 @@ public class Alarm {
      */
     public void waitUntil(long x) {
 	// for now, cheat just to get something working (busy waiting is bad)
-      Machine.interrupt().disable();
+      Machine.interrupt().disable();KThread.currentThread()
 	long wakeTime =  Machine.timer().getTime() + x;
 	waitQ.add(KThread.currentThread(),wakeTime);
 	KThread.currentThread().sleep();
@@ -71,7 +71,7 @@ class waitQueue {
 		waits = new LinkedList<KThread>();
 		wakeups = new LinkedList();
 	}
-	public void add(KThread k, longValue wt){
+	public void add(KThread k, long wt){
 		waits.addFirst(k);
 		wakeups.addFirst(wt);
 	}
@@ -79,13 +79,14 @@ class waitQueue {
 		KThread currentWait;
 		long currentWakeup;
 		for (int i = 0;i<waits.size();i++){
-			//System.out.println(i);
+			
 			currentWait =  waits.get(i);
-			currentWakeup = ((Long) wakeups.get(i)).longValue();
+			currentWakeup = ((Long) wakeups.get(i)).longValue(); 
+			
 			if (Machine.timer().getTime() > currentWakeup ){
 				//System.out.println( "tiempo de la maquin"+ Machine.timer().getTime() );
 				//System.out.println("en alarm chingando la pita -->" + currentWakeup + currentWait.getName());
-				
+				//System.out.println("hubo un wake"+currentWait.getName());
 				waits.remove(i);
 				wakeups.remove(i);
 				currentWait.ready();

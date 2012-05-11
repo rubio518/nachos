@@ -3,7 +3,7 @@ package nachos.userprog;
 import nachos.machine.*;
 import nachos.threads.*;
 import nachos.userprog.*;
-
+import java.util.Hashtable;
 import java.io.EOFException;
 
 /**
@@ -25,8 +25,12 @@ public class UserProcess {
     public UserProcess() {
 	int numPhysPages = Machine.processor().getNumPhysPages();
 	pageTable = new TranslationEntry[numPhysPages];
-	for (int i=0; i<numPhysPages; i++)
+	for (int i=0; i<numPhysPages; i++){
 	    pageTable[i] = new TranslationEntry(i,i, true,false,false,false);
+	}
+	this.fileDescriptor.put(new Integer(0), UserKernel.console.openForReading());
+        this.fileDescriptor.put(new Integer(1), UserKernel.console.openForWriting());
+        identi = 2;
     }
     
     /**
@@ -345,8 +349,73 @@ public class UserProcess {
 	Lib.assertNotReached("Machine.halt() did not halt machine!");
 	return 0;
     }
+	
+	/******* mio****************/
+	/*-----------CREATE--------------------*/
+    private int handleCreat(int a0){
+	    int regreso = -1;											/*Valor a regresar iniciado en -1 por defecto valor d error de nachos*/
+	    String Archivo = readVirtualMemoryString(a0,255);				/*Convierto la data d la memoria virtual d este proceso a un string*/
+	    OpenFile file = ThreadedKernel.fileSystem.open(Archivo, true);		/*Abro el archivo en el filesystem y si no existe lo crea debido a el true*/
+	    if (file != null){										
+		    regreso= identi;										/*asigno l indice donde se va guardar el archivo*/
+		    fileDescriptor.put(regreso,file);									/*agrego el archivo a la tabla */
+		    identi++;											/*uno mas al indece en la tabal*/
+	    }
+	    return regreso;											/*regreso el indice donde esta l archivo en la tabla*/
+	}
+    /*-----------FIN CREATE--------------------*/	
+	/*-----------OPEN--------------------*/
+    private int handleOpen(int a0){
+	    int regreso = -1;											/*Valor a regresar iniciado en -1 por defecto valor d error de nachos*/
+	    String Archivo = readVirtualMemoryString(a0,255);				/*Convierto la data d la memoria virtual d este proceso a un string*/
+	    //OpenFile file = Machine.stubFileSystem().open(Archivo, false);		/*Abro el archivo en el filesystem y si no existe retorna nulo*/
+	    OpenFile file = ThreadedKernel.fileSystem.open(Archivo,false);
+	    
+		System.out.println("asfdasdf");
+	    if (file != null){										
+		    //regreso= identi;										/*asigno l indice donde se va guardar el archivo*/
+		    //int paloma = identi;
+		    Integer key = new Integer(regreso = this.identi);
+		    this.fileDescriptor.put(key,file);									/*agrego el archivo a la tabla */
+		    identi++;											/*uno mas al indece en la tabal*/
+	    }
+	   
+	    return regreso;											/*regreso el indice donde esta l archivo en la tabla*/
+	}
+    /*-----------FIN OPEN--------------------*/	
+    /*******************************           read             *****************************************/
+	/***/
+	private int handleRead(int fd, int buffer, int size){
+		OpenFile temp =  fileDescriptor.get(fd); 
+		
+		if((temp==null)||(size < 0)){
+			return -1;
+		}
+		byte[] buf = new byte[size];
+		int ret = temp.read(0,  buf, 0, size);
+		if (ret != -1) {
+			
+                    return writeVirtualMemory(buffer, buf);
+            }
+		return ret;
 
+		
+	}
 
+/*******************************           write             *****************************************/
+	private int handleWrite(int fd, int buffer, int size){
+		OpenFile temp =  fileDescriptor.get(fd); 
+		if((temp==null)||(size < 0)){
+			return -1;
+		}
+		byte[] buf = new byte[size];
+		int ret = readVirtualMemory(buffer, buf);
+		if (ret != -1){
+			return temp.write(buf, 0, size);
+		}
+		return ret;
+	}
+	
     private static final int
         syscallHalt = 0,
 	syscallExit = 1,
@@ -388,11 +457,32 @@ public class UserProcess {
      * @return	the value to be returned to the user.
      */
     public int handleSyscall(int syscall, int a0, int a1, int a2, int a3) {
+	//System.out.println("asfdasdf  "+syscall);
 	switch (syscall) {
 	case syscallHalt:
 	    return handleHalt();
+	 /***/
+	/*
+	case syscallCreate:
+	    return handleCreat(a0);
+	    /**/
+	case syscallOpen:
+		
+	    return handleOpen(a0);	
+	/*
+	case syscallClose:
+	   return handleClose(a0);
+	/**/
+	case syscallRead:
+	    return handleRead(a0,a1,a2);
+	case syscallWrite:
+	    return handleWrite(a0,a1,a2);
+	/*
+	case syscallUnlink:
+	    return handleUnlink(a0);
 
-
+		/**/
+	
 	default:
 	    Lib.debug(dbgProcess, "Unknown syscall " + syscall);
 	    Lib.assertNotReached("Unknown system call!");
@@ -432,7 +522,11 @@ public class UserProcess {
 
     /** The program being run by this process. */
     protected Coff coff;
-
+	
+	/** file descriptor */
+	Hashtable<Integer,OpenFile> fileDescriptor = new Hashtable<Integer,OpenFile>();
+	protected int  identi = 0;							/*el indice de mi tabla*/
+    
     /** This process's page table. */
     protected TranslationEntry[] pageTable;
     /** The number of contiguous pages occupied by the program. */

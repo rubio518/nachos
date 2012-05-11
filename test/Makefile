@@ -31,7 +31,7 @@ LIB = assert atoi printf readline stdio strncmp strcat strcmp strcpy strlen memc
 NLIB = libnachos.a
 
 TARGETS = halt sh matmult sort echo cat cp mv rm #chat chatserver
-
+#TARGETS = halt
 .SECONDARY: $(patsubst %.c,%.o,$(wildcard *.c))
 
 all: $(patsubst %,%.coff,$(TARGETS))

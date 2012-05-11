@@ -189,8 +189,8 @@ public class KThread {
 	toBeDestroyed = currentThread;
 	currentThread.status = statusFinished;
 	
-	 
-	for(int i = 0; i < currentThread.cola.size();i++){	
+	int csize = currentThread.cola.size(); 
+	for(int i = 0; i < csize;i++){	
 	
 		(currentThread.cola.removeFirst()).ready();
 		
@@ -281,7 +281,7 @@ public class KThread {
 	
 	
 	    
-	if ( this.status != statusFinished){
+	if (this.status != statusFinished){
 		this.cola.addFirst(currentThread);
 		Machine.interrupt().disable();
 		sleep();
@@ -356,7 +356,7 @@ public class KThread {
 		  + " to: " + toString());
 
 	currentThread = this;
-
+	
 	tcb.contextSwitch();
 
 	currentThread.restoreState();
@@ -383,7 +383,7 @@ public class KThread {
 	    toBeDestroyed = null;
 	}
     }
-
+	
     /**
      * Prepare this thread to give up the processor. Kernel threads do not
      * need to do anything here.
@@ -413,12 +413,12 @@ public class KThread {
      * Tests whether this module is working.
      */
 
-
+/*
 private static class PingTest implements Runnable {
 PingTest(int which) {
 this.which = which;
 }
-
+/*
 public void run() {
   for (int i=0; i<5; i++) {
     System.out.println("*** thread " + which + " looped " + i + " times, Tick:" + Machine.timer().getTime());
@@ -457,6 +457,65 @@ public void run() {
 
 private int which;
 }
+/**/
+
+
+private static class PingTest implements Runnable {
+	PingTest(int which) {
+	this.which = which;
+	}
+	
+	public void run() {
+	
+	for (int i=0; i<5; i++) {
+	System.out.println("*** thread " + which + " looped " + i + " times, Tick:" + Machine.timer().getTime());
+	if ((which == 1) && (i==0))
+	//System.out.println("*** thread " + which + "mandado a dormir 1000");
+	
+	ThreadedKernel.alarm.waitUntil(500);
+	if ((which == 1) && (i==1))
+	dos.join();
+	if ((which == 0) && (i==2))
+	dos.join();
+	if ((which == 2) && (i==3))
+	tres.join();
+	if ((which == 1) && (i==3))
+	dos.join();
+	ThreadedKernel.alarm.waitUntil(300);
+	currentThread.yield();
+	
+	}
+	/* */
+	boolean AlarmTest = true;
+  /*
+	if (AlarmTest) {
+		long timea = 0;
+		if(which==0){
+		 timea=500;
+		}else if(which ==1){
+		 timea=900;
+		}
+		else if(which ==2){
+		 timea=1000;
+		}else{
+		 timea=1500;
+		}
+		System.out.println((Machine.timer().getTime())+"** "+KThread.currentThread().getName()+" esperara al menos "+timea+" ticks, despertara aprox. en "+(Machine.timer().getTime()+timea));
+		//System.out.println( "antes del waitil-->" + Machine.timer().getTime());
+		ThreadedKernel.alarm.waitUntil(timea);
+		System.out.println("*** thread " + which + " desperto en: " + Machine.timer().getTime());
+		
+		//System.out.println("*** thread " + which + " desperto en: " + Machine.timer().getTime());
+		
+		
+	
+	}
+	*/
+	
+	}
+
+private int which;
+} 
 
 /**
 * Tests whether this module is working.
@@ -489,9 +548,9 @@ ThreadedKernel.scheduler.setPriority(t2, t2p);
 ThreadedKernel.scheduler.setPriority(t3, t3p);
 Machine.interrupt().restore(int_state);
 
-t1.setName("t1").fork();
-t2.setName("t2").fork();
-t3.setName("t3").fork();
+t1.setName("a").fork();
+t2.setName("b").fork();
+t3.setName("c").fork();
 t1.join();
 t2.join();
 t3.join();
@@ -501,8 +560,29 @@ t3.join();
 /**
 * Tests whether this module is working.
 */
+/*
+public static void selfTest() {
+	Lib.debug(dbgThread, "Enter KThread.selfTest");
+	
+	cero = new KThread(new PingTest(0)).setName("forked thread0");
+	cero.fork();
+	uno = new KThread(new PingTest(1)).setName("forked thread1");
+	uno.fork();
+	dos = new KThread(new PingTest(2)).setName("forked thread2");
+	dos.fork();
+	tres = new KThread(new PingTest(3)).setName("forked thread3");
+	tres.fork();
+	//uno.join();
+	ThreadedKernel.alarm.waitUntil(10000);
+}
+
+*/
+
 public static void selfTest()
 {
+
+ThreadedKernel.alarm.waitUntil(10000);
+
 
 KThread t1, t2, t3;
 final Lock lock;
@@ -545,7 +625,7 @@ System.out.println(KThread.currentThread().getName() + " finished working");
 
 });
 
-selfTestRun(t1, 7, t2, 4);
+//selfTestRun(t1, 7, t2, 4);
 
 /*
 * Case 2: Tests priority scheduler without donation, altering
@@ -555,6 +635,8 @@ selfTestRun(t1, 7, t2, 4);
 * half-way through t1's process its priority is lowered to 2.
 *
 */
+/**/
+
 
 System.out.println("Case 2:");
 
@@ -594,7 +676,7 @@ System.out.println(KThread.currentThread().getName() + " finished working");
 
 });
 
-selfTestRun(t1, 7, t2, 4);
+//selfTestRun(t1, 7, t2, 4);
 
 /*
 * Case 3: Tests priority donation
@@ -613,55 +695,68 @@ condition = new Condition2(lock);
 
 t1 = new KThread(new Runnable()
 {
-public void run()
-{
-lock.acquire();
-System.out.println(KThread.currentThread().getName() + " active");
-lock.release();
-}
+	public void run()
+	{
+		System.out.println(KThread.currentThread().getName() + " active and want lock");
+		lock.acquire();
+		
+		for (int i = 0; i <10; ++i)
+		{
+			System.out.println(KThread.currentThread().getName() + " working " + i);
+			KThread.yield();
+		}
+		lock.release();
+		System.out.println(KThread.currentThread().getName() + " finished working");
+		KThread.yield();
+	}
 });
 
 t2 = new KThread(new Runnable()
 {
 public void run()
 {
-System.out.println(KThread.currentThread().getName() + " started working");
-for (int i = 0; i < 3; ++i)
-{
-System.out.println(KThread.currentThread().getName() + " working " + i);
-KThread.yield();
-}
-System.out.println(KThread.currentThread().getName() + " finished working");
+	System.out.println(KThread.currentThread().getName() + " started working");
+	for (int i = 0; i <10; ++i)
+	{
+		System.out.println(KThread.currentThread().getName() + " working " + i);
+		KThread.yield();
+	}
+	System.out.println(KThread.currentThread().getName() + " finished working");
 }
 
 });
 
 t3 = new KThread(new Runnable()
 {
-public void run()
-{
-lock.acquire();
+	public void run()
+	{
+		lock.acquire();
+		System.out.println(KThread.currentThread().getName() + " active con el lock agarrado");
+		boolean int_state = Machine.interrupt().disable();
+		System.out.println(KThread.currentThread().getName() + " cambiando prioridad a lo mas bajo");
+		
+		ThreadedKernel.scheduler.setPriority(2);
+		Machine.interrupt().restore(int_state);
 
-boolean int_state = Machine.interrupt().disable();
-ThreadedKernel.scheduler.setPriority(2);
-Machine.interrupt().restore(int_state);
+		KThread.yield();
 
-KThread.yield();
+		// t1.acquire() will now have to realise that t3 owns the lock it wants to obtain
+		// so program execution will continue here.
 
-// t1.acquire() will now have to realise that t3 owns the lock it wants to obtain
-// so program execution will continue here.
+		System.out.println(KThread.currentThread().getName() + " active con prioridad prestada de a :P");
+		//lock.release();
+		KThread.yield();
+		//lock.acquire();
+		System.out.println(KThread.currentThread().getName() + " active-again probando si hay contextSwitch");		
 
-System.out.println(KThread.currentThread().getName() + " active ('a' wants its lock back so we are here)");
-lock.release();
-KThread.yield();
-lock.acquire();
-System.out.println(KThread.currentThread().getName() + " active-again (should be after 'a' and 'b' done)");
-lock.release();
-
-}
+		System.out.println(KThread.currentThread().getName() + " finished working");
+		lock.release();
+		
+	}
 });
 
-selfTestRun(t1, 6, t2, 4, t3, 7);
+
+//selfTestRun(t1, 5, t2, 4, t3, 7);
 
 } 
 

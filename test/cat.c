@@ -14,7 +14,7 @@ int main(int argc, char** argv)
     printf("Usage: cat <file>\n");
     return 1;
   }
-
+	
   fd = open(argv[1]);
   if (fd==-1) {
     printf("Unable to open %s\n", argv[1]);
